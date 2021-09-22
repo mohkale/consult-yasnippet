@@ -1,0 +1,42 @@
+#+TITLE: consult-yasnippet
+#+AUTHOR: Mohsin Kaleem
+# LocalWords: yasnippet
+
+
+
+A [[https://github.com/minad/consult][consult]]ing-read interface for [[https://github.com/joaotavora/yasnippet][yasnippet]].
+
+#+CAPTION: Obligatory screenshot of consult-yasnippet in action.
+[[https://user-images.githubusercontent.com/23294780/134374821-4ed3ecdb-cb1d-4fa2-a63a-288a4eeb8bd0.png]]
+
+This package implements the yasnippet consulting-read interface from [[https://github.com/minad/consult/pull/173][consult#173]].
+
+* Table of Contents                                                     :TOC:
+- [[#installation][Installation]]
+  - [[#manually][Manually]]
+  - [[#from-melpa][From MELPA]]
+  - [[#straight][straight]]
+
+* Installation
+** Manually
+   1. Clone the repo.
+   2. Add the repo path to your emacs ~load-path~.
+   3. Load it when needed.
+
+** From MELPA
+   This package is on [[https://github.com/melpa/melpa][MELPA]]. You can add this to your ~package-archives~ variable and
+   then install through ~M-x package-install~.
+
+   #+begin_src emacs-lisp
+     (push '("melpa" . "https://melpa.org/packages/") package-archives)
+     (package-refresh-contents)
+     (package-install 'consult-eglot)
+   #+end_src
+
+** straight
+   You can also install this package through the [[https://github.com/raxod502/straight.el][straight]] package manager.
+
+   #+begin_src emacs-lisp
+     (straight-use-package '(consult-yasnippet :host github
+                                               :repo "mohkale/consult-yasnippet"))
+   #+end_src
