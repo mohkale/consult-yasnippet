@@ -3,7 +3,7 @@
 ;; Copyright (C) 2021  mohsin kaleem
 
 ;; Author: mohsin kaleem <mohkale@kisara.moe>
-;; Package-Requires: ((emacs "27.1") (yasnippet "0.14") )
+;; Package-Requires: ((emacs "27.1") (yasnippet "0.14") (consult "0.9"))
 ;; Version: 0.1
 ;; URL: https://github.com/mohkale/consult-yasnippet
 
