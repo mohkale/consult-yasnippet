@@ -97,14 +97,13 @@ the state of the current buffer to before any snippets were previewed."
   (mapcar
    (lambda (template)
      (cons (concat (yas--template-name template)
-                   (propertize " "
-                               'display (concat
-                                         " ["
-                                         (propertize (or (yas--template-key template)
-                                                         (and (functionp 'yas--template-regexp-key)
-                                                              (yas--template-regexp-key template)))
-                                                     'face 'consult-key)
-                                         "]")))
+                   (concat
+                    " ["
+                    (propertize (or (yas--template-key template)
+                                    (and (functionp 'yas--template-regexp-key)
+                                         (yas--template-regexp-key template)))
+                                'face 'consult-key)
+                    "]"))
            template))
    (yas--all-templates (yas--get-snippet-tables))))
 
