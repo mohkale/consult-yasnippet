@@ -2,6 +2,8 @@
 #+AUTHOR: Mohsin Kaleem
 # LocalWords: yasnippet
 
+#+html: <p align="right"><a href="https://melpa.org/#/consult-yasnippet"><img align="center" alt="MELPA" src="https://melpa.org/packages/consult-yasnippet-badge.svg"/></a></p>
+
 
 
 A [[https://github.com/minad/consult][consult]]ing-read interface for [[https://github.com/joaotavora/yasnippet][yasnippet]].
@@ -15,7 +17,6 @@ This package implements the yasnippet consulting-read interface from [[https://g
 - [[#installation][Installation]]
   - [[#manually][Manually]]
   - [[#from-melpa][From MELPA]]
-  - [[#straight][straight]]
 
 * Installation
 ** Manually
@@ -31,12 +32,4 @@ This package implements the yasnippet consulting-read interface from [[https://g
      (push '("melpa" . "https://melpa.org/packages/") package-archives)
      (package-refresh-contents)
      (package-install 'consult-eglot)
-   #+end_src
-
-** straight
-   You can also install this package through the [[https://github.com/raxod502/straight.el][straight]] package manager.
-
-   #+begin_src emacs-lisp
-     (straight-use-package '(consult-yasnippet :host github
-                                               :repo "mohkale/consult-yasnippet"))
    #+end_src
