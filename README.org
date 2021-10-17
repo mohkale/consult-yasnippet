@@ -31,5 +31,5 @@ This package implements the yasnippet consulting-read interface from [[https://g
    #+begin_src emacs-lisp
      (push '("melpa" . "https://melpa.org/packages/") package-archives)
      (package-refresh-contents)
-     (package-install 'consult-eglot)
+     (package-install 'consult-yasnippet)
    #+end_src
