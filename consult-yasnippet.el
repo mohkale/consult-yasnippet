@@ -27,6 +27,7 @@
 
 ;;; Code:
 
+(require 'map)
 (require 'consult)
 (require 'yasnippet)
 
@@ -89,39 +90,58 @@ the state of the current buffer to before any snippets were previewed."
                 (setcdr region (- (point-max) orig-offset))))
             (redisplay)))))))
 
-(defun consult-yasnippet--candidates ()
-  "Retrieve the list of available snippets in the current buffer."
-  (unless (bound-and-true-p yas-minor-mode)
-    (error "`yas-minor-mode' not enabled in current buffer"))
-
+(defun consult-yasnippet--candidates (templates)
+  "Convert TEMPLATES into candidates for completing-read."
   (mapcar
    (lambda (template)
-     (cons (concat (yas--template-name template)
-                   (concat
-                    " ["
-                    (propertize (or (yas--template-key template)
-                                    (and (functionp 'yas--template-regexp-key)
-                                         (yas--template-regexp-key template)))
-                                'face 'consult-key)
-                    "]"))
+     (cons (concat
+            (propertize (concat (yas--table-name (yas--template-table template))
+                                " ")
+                        'invisible t)
+            (yas--template-name template)
+            " ["
+            (propertize (or (yas--template-key template)
+                            (and (functionp 'yas--template-regexp-key)
+                                 (yas--template-regexp-key template)))
+                        'face 'consult-key)
+            "]")
            template))
-   (yas--all-templates (yas--get-snippet-tables))))
+   templates))
 
-(defun consult-yasnippet--read-template ()
+(defun consult-yasnippet--annotate (candidates)
+  (lambda (cand)
+    (when-let ((template (cdr (assoc cand candidates)))
+               (table-name (yas--table-name (yas--template-table template))))
+      (concat
+       " "
+       (propertize " " 'display `(space :align-to (- right ,(+ 1 (length table-name)))))
+       table-name))))
+
+(defun consult-yasnippet--read-template (&optional all-templates)
   "Backend implementation of `consult-yasnippet'.
-
 This starts a `completing-read' session with all the snippets in the current
 snippet table with support for previewing the snippet to be expanded and
-replacing the active region with the snippet expansion.
+replacing the active region with the snippet expansion. When ALL-TEMPLATES
+is non-nil you get prompted with snippets from all snippet tables, not just
+the current one.
 
 This function doesn't actually expand the snippet, it only reads and then
 returns a snippet template from the user."
+  (unless (bound-and-true-p yas-minor-mode)
+    (error "`consult-yasnippet' can only be called while `yas-minor-mode' is active"))
+
   (barf-if-buffer-read-only)
 
-  (let* ((buffer-undo-list t))                                                  ; Prevent querying user (and showing previews) from updating the undo-history
+  (let* ((buffer-undo-list t)                                                  ; Prevent querying user (and showing previews) from updating the undo-history
+         (candidates
+          (consult-yasnippet--candidates
+           (if all-templates
+               (yas--all-templates (map-values yas--tables))
+             (yas--all-templates (yas--get-snippet-tables))))))
     (consult--read
-     (consult-yasnippet--candidates)
+     candidates
      :prompt "Choose a snippet: "
+     :annotate (consult-yasnippet--annotate candidates)
      :lookup 'consult--lookup-cdr
      :require-match t
      :state (consult-yasnippet--preview)
@@ -133,20 +153,23 @@ returns a snippet template from the user."
 When called interactively this command previews snippet completions in
 the current buffer, and then opens the selected snippets template file
 using `yas--visit-snippet-file-1'."
-  (interactive (list (consult-yasnippet--read-template)))
+  (interactive (list (consult-yasnippet--read-template t)))
   (yas--visit-snippet-file-1 template))
 
 ;;;###autoload
-(defun consult-yasnippet (template)
-  "Interactively select and expand the yasnippet template TEMPLATE.
-When called interactively this command presents a completing read interface
-containing all currently available snippet expansions, with live previews for
-each snippet. Once selected a chosen snippet will be expanded at point using
-`yas-expand-snippet'."
-  (interactive (list (consult-yasnippet--read-template)))
-  (yas-expand-snippet (yas--template-content template)
-                      nil nil
-                      (yas--template-expand-env template)))
+(defun consult-yasnippet (arg)
+  "Interactively select and expand a yasnippet template.
+This command presents a completing read interface containing all currently
+available snippet expansions, with live previews for each snippet. Once
+selected a chosen snippet will be expanded at point using
+`yas-expand-snippet'.
+
+With ARG select snippets from all snippet tables, not just the current one."
+  (interactive "P")
+  (when-let ((template (consult-yasnippet--read-template arg)))
+    (yas-expand-snippet (yas--template-content template)
+                        nil nil
+                        (yas--template-expand-env template))))
 
 (provide 'consult-yasnippet)
 ;;; consult-yasnippet.el ends here
