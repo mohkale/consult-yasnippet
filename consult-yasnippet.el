@@ -3,8 +3,8 @@
 ;; Copyright (C) 2021  mohsin kaleem
 
 ;; Author: mohsin kaleem <mohkale@kisara.moe>
-;; Package-Requires: ((emacs "27.1") (yasnippet "0.14") (consult "0.9"))
-;; Version: 0.1
+;; Package-Requires: ((emacs "27.1") (yasnippet "0.14") (consult "0.16"))
+;; Version: 0.2
 ;; URL: https://github.com/mohkale/consult-yasnippet
 
 ;; This program is free software; you can redistribute it and/or modify
@@ -65,7 +65,7 @@ the state of the current buffer to before any snippets were previewed."
                      (cons (region-beginning) (region-end))
                    (cons (point) (point))))
          (region-contents (buffer-substring (car region) (cdr region))))
-    (lambda (template restore)
+    (lambda (action template)
       (with-current-buffer buf
         (let ((yas-verbosity 0)
               (inhibit-redisplay t)
@@ -81,7 +81,7 @@ the state of the current buffer to before any snippets were previewed."
           (insert region-contents)
           (setcdr region (point))
 
-          (when (and template (not restore))
+          (when (and template (not (eq action 'return)))
             (unwind-protect
                 (consult-yasnippet--expand-template template region region-contents)
               (unwind-protect
