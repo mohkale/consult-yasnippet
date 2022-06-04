@@ -60,6 +60,24 @@
                         nil nil
                         (yas--template-expand-env template))))
 
+(defun consult-yasnippet--bounds-of-thing-at-point (template)
+  "Check if `thing-at-point' is a substring of either `template-key' or
+`template-name'. Matches only if `consult-yasnippet-use-thing-at-point' is t."
+  (if template
+      (let* ((thing (or (thing-at-point 'symbol) ""))
+             (template-key (yas--template-key template))
+             (template-name (yas--template-name template))
+             (use-thing-at-point
+              (when consult-yasnippet-use-thing-at-point
+                (or (string-match-p thing (regexp-quote template-key))
+                    (string-match-p thing (regexp-quote template-name)))))
+             (thing-bounds
+              (if use-thing-at-point
+                  (bounds-of-thing-at-point 'symbol)
+                (cons nil nil))))
+        thing-bounds)
+    (cons nil nil)))
+
 (defun consult-yasnippet--preview ()
   "Previewer for `consult--read'.
 This function expands TEMPLATE at point in the buffer
@@ -68,28 +86,43 @@ overwriting any region that was active and removing any previous
 previews that're already active.
 
 When TEMPLATE is not given, this function essentially just resets
-the state of the current buffer to before any snippets were previewed."
+the state of the current buffer to before any snippets were previewed.
+
+If `consult-yasnippet-use-thing-at-point' is `t' and region is not selected,
+this function removes the matching prefix from the preview."
   (let* ((buf (current-buffer))
+         (region-active-initially (region-active-p))
          (region (if (region-active-p)
                      (cons (region-beginning) (region-end))
                    (cons (point) (point))))
          (region-contents (buffer-substring (car region) (cdr region))))
     (lambda (action template)
       (with-current-buffer buf
-        (let ((yas-verbosity 0)
-              (inhibit-redisplay t)
-              (inhibit-read-only t)
-              (orig-offset (- (point-max) (cdr region)))
-              (yas-prompt-functions '(yas-no-prompt)))
-
+        (let* ((yas-verbosity 0)
+               (inhibit-redisplay t)
+               (inhibit-read-only t)
+               (orig-offset (- (point-max) (cdr region)))
+               (yas-prompt-functions '(yas-no-prompt))
+               (thing-bounds (consult-yasnippet--bounds-of-thing-at-point template))
+               (thing-start (car thing-bounds))
+               (thing-end (cdr thing-bounds))
+               (initial-prefix (when thing-start (buffer-substring thing-start thing-end))))
+          (if region-active-initially
+              (progn
+                (delete-region (car region) (cdr region))
+                (goto-char (car region))
+                (setcar region (point))
+                (insert region-contents)
+                (setcdr region (point)))
+            (progn
+              (delete-region (car region) (cdr region))
+              (if thing-start
+                (setq region thing-bounds
+                      region-contents initial-prefix)
+                (setq region (cons (point) (point)))
+               (delete-region (car region) (cdr region)))))
           ;; We always undo any snippet previews before maybe setting up
           ;; some new previews.
-          (delete-region (car region) (cdr region))
-          (goto-char (car region))
-          (setcar region (point))
-          (insert region-contents)
-          (setcdr region (point))
-
           (when (and template (not (eq action 'return)))
             (unwind-protect
                 (consult-yasnippet--expand-template template region region-contents)
@@ -179,17 +212,8 @@ selected a chosen snippet will be expanded at point using
 With ARG select snippets from all snippet tables, not just the current one."
   (interactive "P")
   (when-let ((template (consult-yasnippet--read-template arg)))
-    (let* ((template-key (yas--template-key template))
-           (template-name (yas--template-name template))
-           (thing (or (thing-at-point 'symbol) ""))
-           (use-thing-at-point
-            (when consult-yasnippet-use-thing-at-point
-              (or (string-prefix-p thing template-key) (string-prefix-p thing template-name))))
-           (thing-bounds
-            (if use-thing-at-point
-                (bounds-of-thing-at-point 'symbol)
-              (cons nil nil)))
-           (thing-start (car thing-bounds))
+    (let* ((thing-bounds (consult-yasnippet--bounds-of-thing-at-point template))
+           (thing-start (cdr thing-bounds))
            (thing-end (cdr thing-bounds)))
       (yas-expand-snippet (yas--template-content template)
                           thing-start thing-end
