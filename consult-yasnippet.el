@@ -180,10 +180,11 @@ With ARG select snippets from all snippet tables, not just the current one."
   (interactive "P")
   (when-let ((template (consult-yasnippet--read-template arg)))
     (let* ((template-key (yas--template-key template))
+           (template-name (yas--template-name template))
            (thing (or (thing-at-point 'symbol) ""))
            (use-thing-at-point
             (when consult-yasnippet-use-thing-at-point
-              (string-prefix-p thing template-key)))
+              (or (string-prefix-p thing template-key) (string-prefix-p thing template-name))))
            (thing-bounds
             (if use-thing-at-point
                 (bounds-of-thing-at-point 'symbol)
