@@ -32,11 +32,12 @@
 (require 'yasnippet)
 
 (defgroup consult-yasnippet nil
-  "Consult interface for yasnippet"
-  :group 'consult)
+  "Consult interface for yasnippet."
+  :group 'consult
+  :group 'editing)
 
 (defcustom consult-yasnippet-use-thing-at-point nil
-  "Use thing-at-point as initial value for consult-yasnippet"
+  "Use `thing-at-point' as initial value for `consult-yasnippet'."
   :type 'boolean)
 
 (defun consult-yasnippet--expand-template (template region region-contents)
@@ -150,7 +151,9 @@ returns a snippet template from the user."
      candidates
      :prompt "Choose a snippet: "
      :annotate (consult-yasnippet--annotate candidates)
-     :initial (when consult-yasnippet-use-thing-at-point (thing-at-point 'symbol))
+     :initial
+     (when consult-yasnippet-use-thing-at-point
+       (thing-at-point 'symbol))
      :lookup 'consult--lookup-cdr
      :require-match t
      :state (consult-yasnippet--preview)
@@ -178,9 +181,13 @@ With ARG select snippets from all snippet tables, not just the current one."
   (when-let ((template (consult-yasnippet--read-template arg)))
     (let* ((template-key (yas--template-key template))
            (thing (or (thing-at-point 'symbol) ""))
-           (use-thing-at-point (and consult-yasnippet-use-thing-at-point
-                                    (string-prefix-p thing template-key)))
-           (thing-bounds (if use-thing-at-point (bounds-of-thing-at-point 'symbol) (cons nil nil)))
+           (use-thing-at-point
+            (when consult-yasnippet-use-thing-at-point
+              (string-prefix-p thing template-key)))
+           (thing-bounds
+            (if use-thing-at-point
+                (bounds-of-thing-at-point 'symbol)
+              (cons nil nil)))
            (thing-start (car thing-bounds))
            (thing-end (cdr thing-bounds)))
       (yas-expand-snippet (yas--template-content template)
