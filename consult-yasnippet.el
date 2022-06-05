@@ -119,9 +119,10 @@ this function removes the matching prefix from the preview."
           (setcdr region (point))
           ;; Restore the region if it was initially active, so that yasnippet can overwrite
           (when (and region-active-initially (eq action 'return))
-            (set-mark-command -1)
+            (activate-mark)
             (set-mark (car region))
             (goto-char (cdr region)))
+
           (when (and template (not (eq action 'return)))
             (unwind-protect
                 (consult-yasnippet--expand-template template region region-contents)
@@ -129,7 +130,7 @@ this function removes the matching prefix from the preview."
                   (mapc #'yas--commit-snippet
                         (yas-active-snippets (point-min) (point-max)))
                 (setcdr region (- (point-max) orig-offset))
-                (set-mark-command -1)))
+                (deactivate-mark)))
             (redisplay)))))))
 
 (defun consult-yasnippet--candidates (templates)
