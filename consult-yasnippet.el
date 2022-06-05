@@ -107,29 +107,29 @@ this function removes the matching prefix from the preview."
                (thing-start (car thing-bounds))
                (thing-end (cdr thing-bounds))
                (initial-prefix (when thing-start (buffer-substring thing-start thing-end))))
-          (if region-active-initially
-              (progn
-                (delete-region (car region) (cdr region))
-                (goto-char (car region))
-                (setcar region (point))
-                (insert region-contents)
-                (setcdr region (point)))
-            (progn
-              (delete-region (car region) (cdr region))
-              (if thing-start
-                (setq region thing-bounds
-                      region-contents initial-prefix)
-                (setq region (cons (point) (point)))
-               (delete-region (car region) (cdr region)))))
+          (when (and thing-start (not region-active-initially))
+            (setq region thing-bounds
+                  region-contents initial-prefix))
           ;; We always undo any snippet previews before maybe setting up
           ;; some new previews.
+          (delete-region (car region) (cdr region))
+          (goto-char (car region))
+          (setcar region (point))
+          (insert region-contents)
+          (setcdr region (point))
+          ;; Restore the region if it was initially active, so that yasnippet can overwrite
+          (when (and region-active-initially (eq action 'return))
+            (set-mark-command -1)
+            (set-mark (car region))
+            (goto-char (cdr region)))
           (when (and template (not (eq action 'return)))
             (unwind-protect
                 (consult-yasnippet--expand-template template region region-contents)
               (unwind-protect
                   (mapc #'yas--commit-snippet
                         (yas-active-snippets (point-min) (point-max)))
-                (setcdr region (- (point-max) orig-offset))))
+                (setcdr region (- (point-max) orig-offset))
+                (set-mark-command -1)))
             (redisplay)))))))
 
 (defun consult-yasnippet--candidates (templates)
@@ -212,8 +212,10 @@ selected a chosen snippet will be expanded at point using
 With ARG select snippets from all snippet tables, not just the current one."
   (interactive "P")
   (when-let ((template (consult-yasnippet--read-template arg)))
-    (let* ((thing-bounds (consult-yasnippet--bounds-of-thing-at-point template))
-           (thing-start (cdr thing-bounds))
+    (let* ((thing-bounds (if (region-active-p)
+                             (cons nil nil)
+                           (consult-yasnippet--bounds-of-thing-at-point template)))
+           (thing-start (car thing-bounds))
            (thing-end (cdr thing-bounds)))
       (yas-expand-snippet (yas--template-content template)
                           thing-start thing-end
