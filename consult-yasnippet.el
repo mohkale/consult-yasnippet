@@ -40,14 +40,19 @@
   "Use `thing-at-point' as initial value for `consult-yasnippet'."
   :type 'boolean)
 
-(defun consult-yasnippet--expand-template (template region region-contents)
-  "Expand TEMPLATE at point saving REGION and REGION-CONTENTS."
+(defcustom consult-yasnippet-always-overwrite-thing-at-point nil
+  "When `consult-yasnippet-use-thing-at-point' is `t'. Always overwrite it, even
+if the selected expansion does not match"
+  :type 'boolean)
+
+(defun consult-yasnippet--expand-template (template region)
+  "Expand TEMPLATE at point saving REGION"
   (deactivate-mark)
   (goto-char (car region))
 
   ;; Restore marked region (when it existed) so that `yas-expand-snippet'
   ;; overwrites it.
-  (when (not (string-equal "" region-contents))
+  (when (not (string-equal "" (buffer-substring (car region) (cdr region))))
     (push-mark (point))
     (push-mark (cdr region) nil t))
 
@@ -63,20 +68,17 @@
 (defun consult-yasnippet--bounds-of-thing-at-point (template)
   "Check if `thing-at-point' is a substring of either `template-key' or
 `template-name'. Matches only if `consult-yasnippet-use-thing-at-point' is t."
-  (if template
+  (if consult-yasnippet-use-thing-at-point
       (let* ((thing (or (thing-at-point 'symbol) ""))
-             (template-key (yas--template-key template))
-             (template-name (yas--template-name template))
              (use-thing-at-point
-              (when consult-yasnippet-use-thing-at-point
-                (or (string-match-p thing (regexp-quote template-key))
-                    (string-match-p thing (regexp-quote template-name)))))
-             (thing-bounds
-              (if use-thing-at-point
-                  (bounds-of-thing-at-point 'symbol)
-                (cons nil nil))))
-        thing-bounds)
-    (cons nil nil)))
+              (or consult-yasnippet-always-overwrite-thing-at-point
+                  (when template
+                    (or (string-match-p thing (regexp-quote (yas--template-key template)))
+                        (string-match-p thing (regexp-quote (yas--template-name template))))))))
+        (if use-thing-at-point
+            (bounds-of-thing-at-point 'symbol)
+          (cons (point) (point))))
+    (cons (point) (point))))
 
 (defun consult-yasnippet--preview ()
   "Previewer for `consult--read'.
@@ -91,32 +93,30 @@ the state of the current buffer to before any snippets were previewed.
 If `consult-yasnippet-use-thing-at-point' is `t' and region is not selected,
 this function removes the matching prefix from the preview."
   (let* ((buf (current-buffer))
-         (region-active-initially (region-active-p))
-         (region (if (region-active-p)
-                     (cons (region-beginning) (region-end))
-                   (cons (point) (point))))
-         (region-contents (buffer-substring (car region) (cdr region))))
+         (region-active-initially (use-region-p))
+         (initial-region (if (use-region-p)
+                             (cons (region-beginning) (region-end))
+                           (cons (point) (point))))
+         (initial-region-contents (buffer-substring (car initial-region) (cdr initial-region)))
+         (region (cons (car initial-region) (cdr initial-region))))
     (lambda (action template)
       (with-current-buffer buf
         (let* ((yas-verbosity 0)
                (inhibit-redisplay t)
                (inhibit-read-only t)
                (orig-offset (- (point-max) (cdr region)))
-               (yas-prompt-functions '(yas-no-prompt))
-               (thing-bounds (consult-yasnippet--bounds-of-thing-at-point template))
-               (thing-start (car thing-bounds))
-               (thing-end (cdr thing-bounds))
-               (initial-prefix (when thing-start (buffer-substring thing-start thing-end))))
-          (when (and thing-start (not region-active-initially))
-            (setq region thing-bounds
-                  region-contents initial-prefix))
+               (yas-prompt-functions '(yas-no-prompt)))
           ;; We always undo any snippet previews before maybe setting up
           ;; some new previews.
           (delete-region (car region) (cdr region))
           (goto-char (car region))
-          (setcar region (point))
-          (insert region-contents)
-          (setcdr region (point))
+          (setq region (cons (car initial-region) (cdr initial-region)))
+          (insert initial-region-contents)
+          (when (not region-active-initially)
+            (setq region (consult-yasnippet--bounds-of-thing-at-point template))
+            (setq initial-region region)
+            (setq initial-region-contents (buffer-substring (car region) (cdr region))))
+
           ;; Restore the region if it was initially active, so that yasnippet can overwrite
           (when (and region-active-initially (eq action 'return))
             (activate-mark)
@@ -125,7 +125,7 @@ this function removes the matching prefix from the preview."
 
           (when (and template (not (eq action 'return)))
             (unwind-protect
-                (consult-yasnippet--expand-template template region region-contents)
+                (consult-yasnippet--expand-template template region)
               (unwind-protect
                   (mapc #'yas--commit-snippet
                         (yas-active-snippets (point-min) (point-max)))
