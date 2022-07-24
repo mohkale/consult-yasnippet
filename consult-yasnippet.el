@@ -38,15 +38,19 @@
 
 (defcustom consult-yasnippet-use-thing-at-point nil
   "Use `thing-at-point' as initial value for `consult-yasnippet'."
-  :type 'boolean)
+  :type 'boolean
+  :group 'consult-yasnippet)
 
 (defcustom consult-yasnippet-always-overwrite-thing-at-point nil
-  "When `consult-yasnippet-use-thing-at-point' is `t'. Always overwrite it, even
-if the selected expansion does not match"
-  :type 'boolean)
+  "Always overwrite `thing-at-point' when expanding a snippet.
+This option forces `consult-yasnippet' to replace `thing-at-point' with the
+expanded snippet even if the expansion doesn't match. This option only
+applies when `consult-yasnippet-use-thing-at-point' is t."
+  :type 'boolean
+  :group 'consult-yasnippet)
 
 (defun consult-yasnippet--expand-template (template region)
-  "Expand TEMPLATE at point saving REGION"
+  "Expand TEMPLATE at point saving REGION."
   (deactivate-mark)
   (goto-char (car region))
 
@@ -66,8 +70,10 @@ if the selected expansion does not match"
                         (yas--template-expand-env template))))
 
 (defun consult-yasnippet--bounds-of-thing-at-point (template)
-  "Check if `thing-at-point' is a substring of either `template-key' or
-`template-name'. Matches only if `consult-yasnippet-use-thing-at-point' is t."
+  "Check for `thing-at-point' in TEMPLATE.
+Returns true if `thing-at-point' is a substring of either `template-key'
+or `template-name'. Matches only if `consult-yasnippet-use-thing-at-point'
+is t."
   (if consult-yasnippet-use-thing-at-point
       (let* ((thing (or (thing-at-point 'symbol) ""))
              (use-thing-at-point
@@ -90,7 +96,7 @@ previews that're already active.
 When TEMPLATE is not given, this function essentially just resets
 the state of the current buffer to before any snippets were previewed.
 
-If `consult-yasnippet-use-thing-at-point' is `t' and region is not selected,
+If `consult-yasnippet-use-thing-at-point' is t and region is not selected,
 this function removes the matching prefix from the preview."
   (let* ((buf (current-buffer))
          (region-active-initially (use-region-p))
@@ -134,7 +140,7 @@ this function removes the matching prefix from the preview."
             (redisplay)))))))
 
 (defun consult-yasnippet--candidates (templates)
-  "Convert TEMPLATES into candidates for completing-read."
+  "Convert TEMPLATES into candidates for `completing-read'."
   (mapcar
    (lambda (template)
      (cons (concat
