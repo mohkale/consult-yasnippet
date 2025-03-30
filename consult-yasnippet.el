@@ -144,18 +144,20 @@ this function removes the matching prefix from the preview."
   "Convert TEMPLATES into candidates for `completing-read'."
   (mapcar
    (lambda (template)
-     (cons (concat
-            (propertize (concat (yas--table-name (yas--template-table template))
-                                " ")
-                        'invisible t)
-            (yas--template-name template)
-            " ["
-            (propertize (or (yas--template-key template)
-                            (and (functionp 'yas--template-regexp-key)
-                                 (yas--template-regexp-key template)))
-                        'face 'consult-key)
-            "]")
-           template))
+     (let* ((group-list (cons (yas--table-name (yas--template-table template))
+                              (yas--template-group template)))
+            (group-name (string-join (or (cdr group-list) group-list) "/")))
+       (cons (concat
+              (propertize group-name 'consult--prefix-group group-name)
+              " "
+              (yas--template-name template)
+              " ["
+              (propertize (or (yas--template-key template)
+                              (and (functionp 'yas--template-regexp-key)
+                                   (yas--template-regexp-key template)))
+                          'face 'consult-key)
+              "]")
+             template)))
    templates))
 
 (defun consult-yasnippet--annotate (candidates)
@@ -198,6 +200,7 @@ returns a snippet template from the user."
      :lookup 'consult--lookup-cdr
      :require-match t
      :state (consult-yasnippet--preview)
+     :group 'consult--prefix-group
      :category 'yasnippet)))
 
 ;;;###autoload
