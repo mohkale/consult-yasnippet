@@ -100,6 +100,7 @@ the state of the current buffer to before any snippets were previewed.
 If `consult-yasnippet-use-thing-at-point' is t and region is not selected,
 this function removes the matching prefix from the preview."
   (let* ((buf (current-buffer))
+         (modified-flag (buffer-modified-p))
          (region-active-initially (use-region-p))
          (initial-region (if (use-region-p)
                              (cons (region-beginning) (region-end))
@@ -138,7 +139,9 @@ this function removes the matching prefix from the preview."
                         (yas-active-snippets (point-min) (point-max)))
                 (setcdr region (- (point-max) orig-offset))
                 (deactivate-mark)))
-            (redisplay)))))))
+            (redisplay))
+          ;; Restore previous modified state
+          (set-buffer-modified-p modified-flag))))))
 
 (defun consult-yasnippet--candidates (templates)
   "Convert TEMPLATES into candidates for `completing-read'."
