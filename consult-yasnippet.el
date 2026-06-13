@@ -154,7 +154,8 @@ this function removes the matching prefix from the preview."
               " ["
               (propertize (or (yas--template-key template)
                               (and (functionp 'yas--template-regexp-key)
-                                   (yas--template-regexp-key template)))
+                                   (yas--template-regexp-key template))
+                              "")
                           'face 'consult-key)
               "]")
              template)))
